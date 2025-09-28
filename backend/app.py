@@ -1,62 +1,56 @@
-from flask import Flask, request, jsonify
 import os
 import json
 import uuid
-from werkzeug.utils import secure_filename
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from concurrent.futures import ThreadPoolExecutor
 
-# Import services
-from services.preprocessing import auto_preprocess
-from services.eda_engine_dynamic import generate_dynamic_eda
+# ==== Import Service Modules ====
+from services.preprocessing import auto_preprocess as preprocess_data
+from services.eda_engine import generate_eda_summary
+from services.models_engine import train_and_select_best
 
-# CONFIG
+# ==== App Configuration ====
+app = Flask(__name__)
+CORS(app)
+
 UPLOAD_FOLDER = "runs"
-ALLOWED_EXTENSIONS = {"csv", "xls", "xlsx"}
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+executor = ThreadPoolExecutor(max_workers=2)
 
-# HELPERS
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# ROUTES
+#  ROUTE 1: UPLOAD DATA
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    """
-    Upload CSV/Excel file and assign run_id
-    """
+    """Upload CSV file and create new run directory"""
     if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
     if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+        return jsonify({"error": "Empty filename"}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        run_id = str(uuid.uuid4())
-        run_path = os.path.join(UPLOAD_FOLDER, run_id)
-        os.makedirs(run_path, exist_ok=True)
-        file_path = os.path.join(run_path, filename)
-        file.save(file_path)
+    run_id = str(uuid.uuid4())
+    run_path = os.path.join(UPLOAD_FOLDER, run_id)
+    os.makedirs(run_path, exist_ok=True)
 
-        status = {"stage": "uploaded", "progress": 10}
-        with open(os.path.join(run_path, "status.json"), "w") as f:
-            json.dump(status, f)
+    filepath = os.path.join(run_path, file.filename)
+    file.save(filepath)
 
-        return jsonify({"run_id": run_id, "file_name": filename})
+    # create initial status.json
+    with open(os.path.join(run_path, "status.json"), "w") as f:
+        json.dump({"stage": "uploaded", "progress": 10}, f)
 
-    return jsonify({"error": "File type not allowed"}), 400
+    return jsonify({
+        "message": "File uploaded successfully",
+        "run_id": run_id,
+        "filename": file.filename
+    })
 
-
+#  ROUTE 2: PREPROCESS DATA
 @app.route("/preprocess", methods=["POST"])
-def preprocess_data():
-    """
-    Run preprocessing pipeline for uploaded dataset
-    """
+def preprocess():
+    """Run preprocessing on uploaded data"""
     data = request.get_json()
     run_id = data.get("run_id")
 
@@ -64,52 +58,129 @@ def preprocess_data():
     if not os.path.exists(run_path):
         return jsonify({"error": "Invalid run_id"}), 404
 
-    files = os.listdir(run_path)
-    csv_files = [f for f in files if f.endswith(".csv")]
+    files = [f for f in os.listdir(run_path) if f.endswith(".csv")]
+    if not files:
+        return jsonify({"error": "No CSV file found for this run"}), 404
 
-    if not csv_files:
-        return jsonify({"error": "No CSV found for this run"}), 400
+    input_path = os.path.join(run_path, files[0])
+    output_path = os.path.join(run_path, "processed.csv")
 
-    file_path = os.path.join(run_path, csv_files[0])
-
-    summary = auto_preprocess(file_path, run_path)
-
-    status = {"stage": "preprocessed", "progress": 30}
     with open(os.path.join(run_path, "status.json"), "w") as f:
-        json.dump(status, f)
+        json.dump({"stage": "preprocessing_started", "progress": 20}, f)
 
-    return jsonify(summary)
+    try:
+        preprocess_data(input_path, run_path)
 
+        with open(os.path.join(run_path, "status.json"), "w") as f:
+            json.dump({"stage": "preprocessing_complete", "progress": 40}, f)
 
+        return jsonify({
+            "message": "Preprocessing complete",
+            "run_id": run_id,
+            "output": "processed.csv"
+        })
+
+    except Exception as e:
+        with open(os.path.join(run_path, "status.json"), "w") as f:
+            json.dump({"stage": "preprocessing_failed", "progress": 0, "error": str(e)}, f)
+        return jsonify({"error": str(e)}), 500
+
+#  ROUTE 3: EDA SUMMARY
 @app.route("/eda", methods=["POST"])
-def run_eda():
-    """
-    Run dynamic EDA for a processed dataset.
-    Expects JSON: {"run_id": "abc123", "target_col": "target"} (target_col optional)
-    """
+def eda():
+    """Generate EDA summary and basic visuals"""
     data = request.get_json()
     run_id = data.get("run_id")
     target_col = data.get("target_col")
 
     run_path = os.path.join(UPLOAD_FOLDER, run_id)
+    processed_path = os.path.join(run_path, "processed.csv")
+
+    if not os.path.exists(processed_path):
+        return jsonify({"error": "Processed file not found"}), 404
+
+    with open(os.path.join(run_path, "status.json"), "w") as f:
+        json.dump({"stage": "eda_started", "progress": 45}, f)
+
+    try:
+        summary = generate_eda_summary(processed_path, run_path, target_col=target_col)
+
+        with open(os.path.join(run_path, "status.json"), "w") as f:
+            json.dump({"stage": "eda_complete", "progress": 50}, f)
+
+        return jsonify({
+            "message": "EDA complete",
+            "run_id": run_id,
+            "summary": summary
+        })
+
+    except Exception as e:
+        with open(os.path.join(run_path, "status.json"), "w") as f:
+            json.dump({"stage": "eda_failed", "progress": 0, "error": str(e)}, f)
+        return jsonify({"error": str(e)}), 500
+
+#  ROUTE 4: START TRAINING (ASYNC)
+@app.route("/train", methods=["POST"])
+def start_training():
+    """
+    Start model training asynchronously.
+    Expects JSON: {"run_id": "<id>", "target_col": "<target>", "cv": 5}
+    """
+    data = request.get_json()
+    run_id = data.get("run_id")
+    target_col = data.get("target_col")
+    cv = int(data.get("cv", 5))
+
+    run_path = os.path.join(UPLOAD_FOLDER, run_id)
     if not os.path.exists(run_path):
         return jsonify({"error": "Invalid run_id"}), 404
 
-    processed_file = os.path.join(run_path, "processed.csv")
-    if not os.path.exists(processed_file):
-        return jsonify({"error": "Processed file not found. Run preprocessing first."}), 400
+    # update status
+    status_file = os.path.join(run_path, "status.json")
+    with open(status_file, "w") as f:
+        json.dump({"stage": "training_started", "progress": 55}, f)
 
-    # Run Dynamic EDA
-    eda_summary = generate_dynamic_eda(processed_file, run_path, target_col=target_col)
+    def job():
+        try:
+            summary = train_and_select_best(run_id, run_path, target_col, cv=cv, max_workers=2)
+            with open(status_file, "w") as f:
+                json.dump({"stage": "training_complete", "progress": 80}, f)
+            return summary
+        except Exception as e:
+            with open(status_file, "w") as f:
+                json.dump({"stage": "training_failed", "progress": 0, "error": str(e)}, f)
+            return None
 
-    # Update progress
-    status = {"stage": "eda_complete", "progress": 50}
-    with open(os.path.join(run_path, "status.json"), "w") as f:
-        json.dump(status, f)
+    executor.submit(job)
+    return jsonify({"message": "Training started", "run_id": run_id})
 
-    return jsonify(eda_summary)
+#  ROUTE 5: FETCH MODEL RESULTS
+@app.route("/results/<run_id>", methods=["GET"])
+def get_results(run_id):
+    """Retrieve AutoML model summary results"""
+    run_path = os.path.join(UPLOAD_FOLDER, run_id)
+    summary_path = os.path.join(run_path, "models", "models_summary.json")
 
+    if not os.path.exists(summary_path):
+        return jsonify({"error": "Models summary not found. Run /train first"}), 404
 
-# MAIN
+    with open(summary_path, "r") as f:
+        summary = json.load(f)
+
+    return jsonify(summary)
+
+#  ROUTE 6: CHECK STATUS
+@app.route("/status/<run_id>", methods=["GET"])
+def get_status(run_id):
+    """Check current progress stage for given run"""
+    status_path = os.path.join(UPLOAD_FOLDER, run_id, "status.json")
+    if not os.path.exists(status_path):
+        return jsonify({"error": "Invalid run_id"}), 404
+
+    with open(status_path, "r") as f:
+        status = json.load(f)
+    return jsonify(status)
+
+#  MAIN ENTRY
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

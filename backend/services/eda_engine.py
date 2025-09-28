@@ -15,7 +15,7 @@ def generate_base64_plot(fig):
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")
 
-def generate_dynamic_eda(file_path, output_dir, target_col=None, top_n=10):
+def generate_eda_summary(file_path, output_dir, target_col=None, top_n=10):
     df = pd.read_csv(file_path)
 
     # Basic Dataset Info
