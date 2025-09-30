@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 from services.preprocessing import auto_preprocess as preprocess_data
 from services.eda_engine import generate_eda_summary
 from services.models_engine import train_and_select_best
+from services.evaluation_engine import evaluate_model
+from services.llm_analysis import generate_llm_insights  # ✅ updated import
 
 # ==== App Configuration ====
 app = Flask(__name__)
@@ -37,7 +39,6 @@ def upload_file():
     filepath = os.path.join(run_path, file.filename)
     file.save(filepath)
 
-    # create initial status.json
     with open(os.path.join(run_path, "status.json"), "w") as f:
         json.dump({"stage": "uploaded", "progress": 10}, f)
 
@@ -122,10 +123,7 @@ def eda():
 #  ROUTE 4: START TRAINING (ASYNC)
 @app.route("/train", methods=["POST"])
 def start_training():
-    """
-    Start model training asynchronously.
-    Expects JSON: {"run_id": "<id>", "target_col": "<target>", "cv": 5}
-    """
+    """Start model training asynchronously."""
     data = request.get_json()
     run_id = data.get("run_id")
     target_col = data.get("target_col")
@@ -135,7 +133,6 @@ def start_training():
     if not os.path.exists(run_path):
         return jsonify({"error": "Invalid run_id"}), 404
 
-    # update status
     status_file = os.path.join(run_path, "status.json")
     with open(status_file, "w") as f:
         json.dump({"stage": "training_started", "progress": 55}, f)
@@ -180,6 +177,28 @@ def get_status(run_id):
     with open(status_path, "r") as f:
         status = json.load(f)
     return jsonify(status)
+
+#  ROUTE 7: EVALUATE BEST MODEL
+@app.route("/evaluate", methods=["POST"])
+def evaluate():
+    """Evaluate the best trained model."""
+    data = request.get_json()
+    run_id = data.get("run_id")
+    target_col = data.get("target_col")
+
+    run_path = os.path.join(UPLOAD_FOLDER, run_id)
+    if not os.path.exists(run_path):
+        return jsonify({"error": "Invalid run_id"}), 404
+
+    try:
+        results = evaluate_model(run_id, run_path, target_col)
+        return jsonify(results)
+
+    except Exception as e:
+        status_file = os.path.join(run_path, "status.json")
+        with open(status_file, "w") as f:
+            json.dump({"stage": "evaluation_failed", "progress": 0, "error": str(e)}, f)
+        return jsonify({"error": str(e)}), 500
 
 #  MAIN ENTRY
 if __name__ == "__main__":
