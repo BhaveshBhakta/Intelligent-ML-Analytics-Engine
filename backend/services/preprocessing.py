@@ -57,7 +57,8 @@ def preprocess_dataset(input_path, output_path, summary_path=None, target_name=N
     categorical_cols = df.select_dtypes(include=["object"]).columns
 
     for col in numeric_cols:
-        df[col].fillna(df[col].median(), inplace=True)
+        df[col] = df[col].fillna(df[col].median())
+
 
     for col in categorical_cols:
         df[col].fillna(df[col].mode()[0], inplace=True)

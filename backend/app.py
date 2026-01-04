@@ -1,6 +1,8 @@
-import os
+import sys, os
+from pathlib import Path
+sys.path.append(os.path.dirname(__file__))
 import uuid
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from services.utils import create_run_folder, update_status, read_status
 from services.preprocessing import preprocess_dataset
@@ -10,20 +12,47 @@ from services.models_engine import train_models
 from services.evaluation_engine import evaluate_model
 from services.report_engine import generate_report
 
+
 # Flask App Initialization
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 
 if not os.path.exists("runs"):
     os.makedirs("runs")
-    
+
 executor = ThreadPoolExecutor(max_workers=2)
 
+from flask import send_from_directory
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+RUNS_DIR = BASE_DIR / "runs"
+
+@app.route("/runs/<run_id>/evaluation/<path:filename>")
+def serve_eval_files(run_id, filename):
+    folder = RUNS_DIR / run_id / "evaluation"
+    return send_from_directory(folder, filename)
+
+
+@app.route("/runs/<run_id>/eda_plots/<path:filename>")
+def serve_eda_files(run_id, filename):
+    folder = RUNS_DIR / run_id / "eda_plots"
+    return send_from_directory(folder, filename)
+
+
+@app.route("/runs/<run_id>/<path:filename>")
+def serve_run_files(run_id, filename):
+    folder = RUNS_DIR / run_id
+    return send_from_directory(folder, filename)
 
 # Health Check Route 
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({"message": "Intelligent ML Analytics Engine API is running!"})
+@app.route("/")
+def index():
+    return send_from_directory("static", "index.html")
+
+# Optional health endpoint
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
 
 # Upload Route
 @app.route("/upload", methods=["POST"])
@@ -129,18 +158,28 @@ def eda_route():
             summary_path=summary_path
         )
 
+        # —— normalize plot paths  ——
+        if "histograms" in eda_summary:
+            eda_summary["histograms"] = [
+                f"runs/{run_id}/eda_plots/{os.path.basename(p)}"
+                for p in eda_summary["histograms"]
+            ]
+
+        if eda_summary.get("correlation_heatmap"):
+            eda_summary["correlation_heatmap"] = \
+                f"runs/{run_id}/eda_plots/{os.path.basename(eda_summary['correlation_heatmap'])}"
+
         update_status(run_id, "eda_complete")
 
         return jsonify({
             "message": "EDA complete",
             "run_id": run_id,
-            "summary_file": summary_path,
-            "plots_folder": eda_dir,
             "eda_overview": eda_summary
         }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
     
 # Model Training Route
 @app.route("/train", methods=["POST"])
@@ -259,6 +298,24 @@ def report_route():
     except Exception as e:
         update_status(run_id, f"report_failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
+    
+# Status Route
+@app.route("/status/<run_id>", methods=["GET"])
+def status_route(run_id):
+    run_path = os.path.join("runs", run_id)
+    status_file = os.path.join(run_path, "status.json")
+
+    if not os.path.exists(status_file):
+        return jsonify({"error": "Invalid run_id"}), 404
+
+    with open(status_file, "r") as f:
+        status = f.read()
+
+    try:
+        return jsonify(json.loads(status))
+    except:
+        return jsonify({"status": status})  
+
 
 # Main
 if __name__ == "__main__":

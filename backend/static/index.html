@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Intelligent ML Analytics Engine</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 30px;
+            background: #f4f4f7;
+        }
+
+        h1 {
+            color: #222;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        input[type=file],
+        input[type=text] {
+            padding: 8px;
+            width: 100%;
+        }
+
+        .log {
+            background: #111;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 140px;
+            font-family: monospace;
+        }
+
+        .metric {
+            background: #f3f4f6;
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .metric span {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .metric p {
+            font-size: 22px;
+            margin: 5px 0 0;
+        }
+
+        .chartGrid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .chartGrid img {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Intelligent ML Analytics Engine</h1>
+
+    <div class="card">
+        <h3>Upload Dataset & Select Target Column</h3>
+
+        <input type="file" id="fileInput"><br><br>
+
+        <input id="targetInput" placeholder="Enter Target Column Name"><br><br>
+
+        <button onclick="runPipeline()">Run AutoML Pipeline</button>
+
+        <p id="uploadStatus"></p>
+    </div>
+
+    <div class="card">
+        <h3>Pipeline Status</h3>
+        <pre id="statusBox"></pre>
+    </div>
+
+    <!-- EDA SECTION -->
+    <div class="card" id="edaCard" style="display:none;">
+        <h2>EDA Visual Insights</h2>
+        <div class="chartGrid" id="edaGrid"></div>
+    </div>
+
+    <!-- PERFORMANCE RESULTS -->
+    <div class="card" id="resultsCard" style="display:none;">
+        <h2>Model Performance</h2>
+
+        <div style="display:flex; gap:20px;">
+            <div class="metric"><span>R² Score</span>
+                <p id="r2"></p>
+            </div>
+            <div class="metric"><span>RMSE</span>
+                <p id="rmse"></p>
+            </div>
+            <div class="metric"><span>MAE</span>
+                <p id="mae"></p>
+            </div>
+        </div>
+
+        <br>
+        <a id="pdfLink" target="_blank">Download Final Report (PDF)</a>
+    </div>
+
+    <!-- CHART GALLERY -->
+    <div class="card" id="chartsCard" style="display:none;">
+        <h2>Evaluation Charts</h2>
+
+        <div class="chartGrid">
+            <div>
+                <h4>Actual vs Predicted</h4>
+                <img id="chart1">
+            </div>
+
+            <div>
+               <h4>Residuals</h4>
+               <img id="chart2">
+            </div>
+
+            <div>
+               <h4>Error Distribution</h4>
+               <img id="chart3">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Logs</h3>
+        <div class="log" id="logBox">Waiting…</div>
+    </div>
+
+    <script>
+        let run_id = null;
+        const API = "http://localhost:5000";
+
+        function log(msg) {
+            document.getElementById("logBox").textContent += "\n" + msg;
+        }
+
+        async function runPipeline() {
+
+            const file = document.getElementById("fileInput").files[0];
+            const target = document.getElementById("targetInput").value;
+
+            if (!file) return alert("Select a CSV file.");
+            if (!target) return alert("Enter a target column.");
+
+            // ---------- Upload ----------
+            const form = new FormData();
+            form.append("file", file);
+
+            let res = await fetch(`${API}/upload`, { method: "POST", body: form });
+            let data = await res.json();
+            run_id = data.run_id;
+
+            log("Run ID: " + run_id);
+
+            // ---------- Preprocess ----------
+            await fetch(`${API}/preprocess`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ run_id, target })
+            });
+
+            // ---------- EDA ----------
+            let edaRes = await fetch(`${API}/eda`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ run_id })
+            });
+
+            let edaData = await edaRes.json();
+            log("EDA complete.");
+            showEDA(edaData);
+
+            // ---------- Train ----------
+            await fetch(`${API}/train`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ run_id, target })
+            });
+
+            log("Training started…");
+
+            // Poll status until finished
+            let done = false;
+            while (!done) {
+                const res = await fetch(`${API}/status/${run_id}`);
+                const status = await res.json();
+
+                document.getElementById("statusBox").textContent =
+                    JSON.stringify(status, null, 2);
+
+                const value = status.status || status.stage || status;
+
+                if (typeof value === "string" && value.includes("training_complete")) {
+                    done = true;
+                    break;
+                }
+
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+            log("Training complete.");
+
+            // ---------- Evaluate ----------
+            res = await fetch(`${API}/evaluate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ run_id, target })
+            });
+
+            const evalData = await res.json();
+            log("Evaluation completed.");
+
+            showResults(evalData);
+
+            // ---------- Report ----------
+            res = await fetch(`${API}/report`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ run_id })
+            });
+
+            const report = await res.json();
+            document.getElementById("pdfLink").href =
+                `/${report.report_path}`;
+        }
+
+        function normalize(path) {
+            if (path.startsWith("/")) return path;
+            return "/" + path;
+        }
+
+        function showResults(data) {
+
+            document.getElementById("resultsCard").style.display = "block";
+            document.getElementById("chartsCard").style.display = "block";
+
+            document.getElementById("r2").innerText = data.results.r2_score.toFixed(3);
+            document.getElementById("rmse").innerText = data.results.rmse.toFixed(2);
+            document.getElementById("mae").innerText = data.results.mae.toFixed(2);
+
+            document.getElementById("chart1").src =
+                normalize(data.results.plots.actual_vs_predicted);
+
+            document.getElementById("chart2").src =
+                normalize(data.results.plots.residuals);
+
+            document.getElementById("chart3").src =
+                normalize(data.results.plots.error_distribution);
+        }
+
+        function showEDA(data) {
+
+            if (!data.eda_overview) return;
+
+            const plots = data.eda_overview;
+
+            document.getElementById("edaCard").style.display = "block";
+
+            const grid = document.getElementById("edaGrid");
+            grid.innerHTML = "";
+
+            // Render histograms
+            if (plots.histograms && plots.histograms.length > 0) {
+                plots.histograms.forEach(p => {
+                    grid.innerHTML += `
+                        <div>
+                            <h4>Histogram</h4>
+                            <img src="/${p}">
+                        </div>
+                    `;
+                });
+            }
+
+            // Render correlation heatmap
+            if (plots.correlation_heatmap) {
+                grid.innerHTML += `
+                    <div>
+                        <h4>Correlation Heatmap</h4>
+                        <img src="/${plots.correlation_heatmap}">
+                    </div>
+                `;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
