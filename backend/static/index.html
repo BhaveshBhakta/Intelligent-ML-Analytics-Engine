@@ -1,318 +1,1047 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Intelligent ML Analytics Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoML | Intelligent Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <style>
+
         body {
-            font-family: Arial;
-            margin: 30px;
-            background: #f4f4f7;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
 
-        h1 {
-            color: #222;
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        .fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(30px);
         }
 
-        button {
-            padding: 10px 14px;
-            background: #2563eb;
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-float-delayed {
+            animation: float 6s ease-in-out 3s infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .page-transition {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .hidden-view {
+            display: none !important;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .loader {
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #2563eb;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .step-active .step-dot {
+            background-color: #2563eb;
+            border-color: #2563eb;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
         }
 
-        button:disabled {
-            opacity: .6;
-            cursor: not-allowed;
+        .step-active .step-line {
+            background-color: #2563eb;
         }
 
-        input[type=file],
-        input[type=text] {
-            padding: 8px;
-            width: 100%;
+        .step-completed .step-dot {
+            background-color: #10b981;
+            border-color: #10b981;
+            color: white;
         }
 
-        .log {
-            background: #111;
-            color: #0f0;
-            padding: 15px;
-            border-radius: 8px;
-            min-height: 140px;
-            font-family: monospace;
+        .step-completed .step-line {
+            background-color: #10b981;
         }
 
-        .metric {
-            background: #f3f4f6;
-            padding: 10px 20px;
-            border-radius: 10px;
-        }
-
-        .metric span {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .metric p {
-            font-size: 22px;
-            margin: 5px 0 0;
-        }
-
-        .chartGrid {
+        .heatmap-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
         }
 
-        .chartGrid img {
-            width: 100%;
-            border-radius: 10px;
-            border: 1px solid #ddd;
+        .heatmap-cell {
+            background: #eff6ff;
+            border-radius: 4px;
+            aspect-ratio: 1;
+        }
+
+        .heatmap-cell.high {
+            background: #2563eb;
+        }
+
+        .heatmap-cell.mid {
+            background: #60a5fa;
+        }
+
+        .heatmap-cell.low {
+            background: #dbeafe;
+        }
+
+        .progress-bar-bg {
+            background: #f1f5f9;
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            animation: fillBar 2s ease-out forwards;
+            width: 0;
+        }
+
+        @keyframes fillBar {
+            to {
+                width: var(--w);
+            }
+        }
+
+        .browser-mockup {
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
         }
     </style>
 </head>
 
-<body>
+<body class="text-slate-800 antialiased">
 
-    <h1>Intelligent ML Analytics Engine</h1>
+    <div id="landingPage" class="page-transition min-h-screen w-full flex flex-col relative bg-white overflow-hidden">
 
-    <div class="card">
-        <h3>Upload Dataset & Select Target Column</h3>
-
-        <input type="file" id="fileInput"><br><br>
-
-        <input id="targetInput" placeholder="Enter Target Column Name"><br><br>
-
-        <button onclick="runPipeline()">Run AutoML Pipeline</button>
-
-        <p id="uploadStatus"></p>
-    </div>
-
-    <div class="card">
-        <h3>Pipeline Status</h3>
-        <pre id="statusBox"></pre>
-    </div>
-
-    <!-- EDA SECTION -->
-    <div class="card" id="edaCard" style="display:none;">
-        <h2>EDA Visual Insights</h2>
-        <div class="chartGrid" id="edaGrid"></div>
-    </div>
-
-    <!-- PERFORMANCE RESULTS -->
-    <div class="card" id="resultsCard" style="display:none;">
-        <h2>Model Performance</h2>
-
-        <div style="display:flex; gap:20px;">
-            <div class="metric"><span>R² Score</span>
-                <p id="r2"></p>
+        <div class="absolute inset-0 z-0 pointer-events-none">
+            <div
+                class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]">
             </div>
-            <div class="metric"><span>RMSE</span>
-                <p id="rmse"></p>
+
+            <div
+                class="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/60 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/3 opacity-50">
             </div>
-            <div class="metric"><span>MAE</span>
-                <p id="mae"></p>
+            <div
+                class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-100/60 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/3 opacity-50">
+            </div>
+            <div
+                class="absolute top-1/2 left-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-sky-50 to-indigo-50 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 opacity-60 -z-10">
+            </div>
+
+            <div class="absolute top-1/4 left-[10%] w-3 h-3 bg-blue-400 rounded-full opacity-30 animate-pulse"></div>
+            <div class="absolute top-1/3 right-[15%] w-4 h-4 bg-purple-400 rounded-full opacity-30 animate-bounce"
+                style="animation-duration: 3s;"></div>
+            <div class="absolute bottom-1/3 left-[5%] w-2 h-2 bg-indigo-400 rounded-full opacity-30 animate-ping"
+                style="animation-duration: 4s;"></div>
+            <div class="absolute top-[15%] right-[25%] w-2 h-2 bg-sky-400 rounded-full opacity-20"></div>
+            <div
+                class="absolute bottom-[20%] right-[10%] w-6 h-6 border-2 border-slate-200 rounded-lg opacity-40 rotate-12">
             </div>
         </div>
 
-        <br>
-        <a id="pdfLink" target="_blank">Download Final Report (PDF)</a>
+        <nav
+            class="w-full px-6 md:px-10 py-6 flex justify-between items-center z-50 bg-white/60 backdrop-blur-md sticky top-0 border-b border-slate-100/50">
+            <div class="flex items-center gap-2">
+                <div class="bg-slate-900 text-white p-1.5 rounded-lg shadow-lg shadow-slate-900/20">
+                    <i class="ph-bold ph-brain text-2xl"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-slate-900"><span
+                        class="text-blue-600">AutoML - Intelligent Analytics</span></span>
+            </div>
+            <button onclick="goToApp()"
+                class="bg-slate-900 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-slate-800 transition shadow-lg shadow-slate-900/10 flex items-center gap-2 hover:-translate-y-0.5 transform duration-200">
+                Launch App <i class="ph-bold ph-arrow-right"></i>
+            </button>
+        </nav>
+
+        <header
+            class="flex-1 flex flex-col justify-center items-center text-center px-6 pt-20 pb-20 max-w-6xl mx-auto relative z-10">
+
+            <div class="absolute left-0 top-1/4 hidden lg:block opacity-20 animate-float">
+                <i class="ph-duotone ph-chart-donut text-9xl text-slate-400 -rotate-12"></i>
+            </div>
+            <div class="absolute right-0 bottom-1/4 hidden lg:block opacity-20 animate-float-delayed">
+                <i class="ph-duotone ph-trend-up text-9xl text-blue-400 rotate-12"></i>
+            </div>
+            <div class="absolute left-[20%] bottom-0 hidden lg:block opacity-10">
+                <i class="ph-duotone ph-database text-8xl text-purple-400"></i>
+            </div>
+
+            <h1
+                class="fade-in-up delay-100 text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-8 leading-[1.1]">
+                From Raw Data to, <br>
+                <span class="gradient-text">Instant Insights.</span>
+            </h1>
+
+            <p
+                class="fade-in-up delay-200 text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+                Skip the hours of data cleaning and parameter tuning. Transform your CSVs into trained models, visualizations, and comprehensive reports in a single click.
+            </p>
+
+            <div class="fade-in-up delay-300 flex gap-4 justify-center">
+                <button onclick="goToApp()"
+                    class="group relative px-8 py-4 bg-slate-900 text-white rounded-xl text-lg font-bold shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                    <span class="relative z-10 flex items-center gap-2">Start Experiment <i
+                            class="ph-bold ph-flask"></i></span>
+                </button>
+                <a href="#features"
+                    class="px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-xl text-lg font-bold hover:bg-slate-50 transition flex items-center gap-2">
+                    Learn More <i class="ph-bold ph-caret-down"></i>
+                </a>
+            </div>
+        </header>
+
+        <section class="px-6 pb-24 fade-in-up delay-300 relative z-20">
+            <div class="max-w-6xl mx-auto">
+                <div class="relative rounded-2xl browser-mockup border border-slate-200 bg-white overflow-hidden group">
+                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
+                        <div class="flex gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div
+                                class="bg-white border border-slate-200 rounded-md py-1 px-3 text-xs text-slate-400 inline-block w-64 shadow-sm">
+                                automl.studio/dashboard</div>
+                        </div>
+                    </div>
+                    <div class="relative bg-slate-100 aspect-[16/9] flex items-center justify-center overflow-hidden">
+                        <img src="demo.png"
+                            alt="Project Dashboard Demo"
+                            class="w-full h-full object-fit opacity-90">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent"></div>
+
+                        <div
+                            class="absolute bottom-6 right-6 bg-white/90 backdrop-blur shadow-lg px-4 py-2 rounded-lg text-sm font-bold text-slate-800 flex items-center gap-2 border border-white/50">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Live Preview
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="features" class="w-full bg-white relative z-10">
+
+            <section class="py-24 px-6 border-t border-slate-100">
+                <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+                    <div class="order-2 md:order-1">
+                        <span class="text-blue-600 font-bold tracking-widest text-xs uppercase mb-2 block">01.
+                            Processing & Insights</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mb-6 leading-tight">Data Cleaning to<br>Visual
+                            Discovery.</h2>
+                        <p class="text-lg text-slate-500 leading-relaxed mb-8">
+                            We automate the tedious parts of data science. From handling missing values and outlier
+                            detection to generating comprehensive pair plots, your data is prepped and visualized
+                            instantly.
+                        </p>
+
+                        <div
+                            class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4 text-sm font-semibold text-slate-700">
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-green-500"></i>
+                                Heatmaps</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-green-500"></i>
+                                Distributions</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-blue-500"></i>
+                                Auto-Cleaning</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-blue-500"></i>
+                                Outlier Detection</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-purple-500"></i>
+                                Feature Scaling</div>
+                            <div class="flex items-center gap-2"><i class="ph-fill ph-check-circle text-purple-500"></i>
+                                Categorical Encoding</div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="order-1 md:order-2 bg-slate-50 rounded-3xl p-8 border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+                        <div class="absolute top-0 right-0 p-4 opacity-10"><i
+                                class="ph-duotone ph-chart-grid text-9xl"></i></div>
+                        <div
+                            class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 w-3/4 mx-auto rotate-2 group-hover:rotate-0 transition duration-500">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="h-2 w-20 bg-slate-200 rounded"></div>
+                                <div class="h-2 w-8 bg-slate-200 rounded"></div>
+                            </div>
+                            <div class="heatmap-grid">
+                                <div class="heatmap-cell high"></div>
+                                <div class="heatmap-cell mid"></div>
+                                <div class="heatmap-cell low"></div>
+                                <div class="heatmap-cell high"></div>
+                                <div class="heatmap-cell mid"></div>
+                                <div class="heatmap-cell low"></div>
+                                <div class="heatmap-cell high"></div>
+                                <div class="heatmap-cell mid"></div>
+                                <div class="heatmap-cell low"></div>
+                                <div class="heatmap-cell high"></div>
+                                <div class="heatmap-cell mid"></div>
+                                <div class="heatmap-cell low"></div>
+                                <div class="heatmap-cell high"></div>
+                                <div class="heatmap-cell mid"></div>
+                                <div class="heatmap-cell low"></div>
+                                <div class="heatmap-cell high"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-24 px-6 bg-slate-50/50">
+                <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+                    <div
+                        class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative group hover:shadow-md transition">
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>XGBoost Classifier</span>
+                                    <span class="text-green-600">98.2%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-green-500" style="--w: 98%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>Random Forest</span>
+                                    <span class="text-blue-600">95.4%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-blue-500" style="--w: 95%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>Logistic Regression</span>
+                                    <span class="text-slate-400">82.1%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill bg-slate-300" style="--w: 82%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex items-center justify-center">
+                            <span class="bg-slate-900 text-white text-xs px-3 py-1 rounded-full">Automated Tuning
+                                Active</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-purple-600 font-bold tracking-widest text-xs uppercase mb-2 block">02.
+                            Modeling</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mb-6 leading-tight">The Battle
+                            of<br>Algorithms.</h2>
+                        <p class="text-lg text-slate-500 leading-relaxed mb-8">
+                            Why settle for one model? We train 20+ algorithms simultaneously—including XGBoost,
+                            CatBoost, and LightGBM—automatically tuning hyperparameters to find the champion.
+                        </p>
+                        <ul class="space-y-3 text-slate-600 font-medium">
+                            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                20+ Models Trained</li>
+                            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                Hyperparameter Optimization</li>
+                            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                Cross-Validation</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-24 px-6">
+                <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+                    <div class="order-2 md:order-1">
+                        <span class="text-rose-600 font-bold tracking-widest text-xs uppercase mb-2 block">03.
+                            Evaluation</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mb-6 leading-tight">Beyond Simple<br>Accuracy
+                            Scores.</h2>
+                        <p class="text-lg text-slate-500 leading-relaxed mb-8">
+                            Trusting a model requires understanding it. We provide deep diagnostics including Feature
+                            Importance rankings, Residual plots, and detailed Error Distributions to ensure your model
+                            is robust.
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <span
+                                class="px-4 py-2 bg-rose-50 text-rose-700 text-sm font-bold rounded-lg border border-rose-100">Feature
+                                Importance</span>
+                            <span
+                                class="px-4 py-2 bg-rose-50 text-rose-700 text-sm font-bold rounded-lg border border-rose-100">Residual
+                                Analysis</span>
+                            <span
+                                class="px-4 py-2 bg-rose-50 text-rose-700 text-sm font-bold rounded-lg border border-rose-100">Error
+                                Distribution</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="order-1 md:order-2 bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative group hover:shadow-md transition">
+                        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Feature Importance
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="relative group/bar cursor-default">
+                                <div class="flex justify-between text-sm font-bold text-slate-700 mb-1 z-10 relative">
+                                    <span>Contract_Type</span>
+                                    <span>0.42</span>
+                                </div>
+                                <div class="h-10 bg-slate-50 rounded-lg w-full relative overflow-hidden">
+                                    <div
+                                        class="absolute top-0 left-0 h-full bg-rose-500 w-[85%] rounded-lg opacity-20 group-hover/bar:opacity-30 transition">
+                                    </div>
+                                    <div class="absolute top-0 left-0 h-full w-[85%] flex items-center px-3">
+                                        <div class="h-1.5 w-full bg-rose-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative group/bar cursor-default">
+                                <div class="flex justify-between text-sm font-bold text-slate-700 mb-1 z-10 relative">
+                                    <span>Monthly_Charges</span>
+                                    <span>0.28</span>
+                                </div>
+                                <div class="h-10 bg-slate-50 rounded-lg w-full relative overflow-hidden">
+                                    <div
+                                        class="absolute top-0 left-0 h-full bg-rose-500 w-[60%] rounded-lg opacity-20 group-hover/bar:opacity-30 transition">
+                                    </div>
+                                    <div class="absolute top-0 left-0 h-full w-[60%] flex items-center px-3">
+                                        <div class="h-1.5 w-full bg-rose-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative group/bar cursor-default">
+                                <div class="flex justify-between text-sm font-bold text-slate-700 mb-1 z-10 relative">
+                                    <span>Tenure</span>
+                                    <span>0.15</span>
+                                </div>
+                                <div class="h-10 bg-slate-50 rounded-lg w-full relative overflow-hidden">
+                                    <div
+                                        class="absolute top-0 left-0 h-full bg-rose-500 w-[35%] rounded-lg opacity-20 group-hover/bar:opacity-30 transition">
+                                    </div>
+                                    <div class="absolute top-0 left-0 h-full w-[35%] flex items-center px-3">
+                                        <div class="h-1.5 w-full bg-rose-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-24 px-6 bg-slate-50/50">
+                <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+                    <div class="flex justify-center items-center">
+                        <div
+                            class="relative w-64 h-80 bg-white border border-slate-200 shadow-xl rounded-xl rotate-[-6deg] group hover:rotate-0 transition duration-500">
+                       
+                            <div class="h-24 bg-slate-900 rounded-t-xl p-4 flex flex-col justify-between">
+                                <div class="flex gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-slate-700"></div>
+                                    <div class="w-2 h-2 rounded-full bg-slate-700"></div>
+                                </div>
+                                <div class="text-white font-bold text-lg">Analysis Report</div>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="h-2 bg-slate-100 rounded w-full"></div>
+                                <div class="h-2 bg-slate-100 rounded w-5/6"></div>
+                                <div class="h-2 bg-slate-100 rounded w-4/6"></div>
+                                <div class="mt-8 flex gap-2">
+                                    <div class="flex-1 h-20 bg-blue-50 rounded border border-blue-100"></div>
+                                    <div class="flex-1 h-20 bg-slate-50 rounded border border-slate-100"></div>
+                                </div>
+                            </div>
+                            <div
+                                class="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center text-white text-2xl group-hover:scale-110 transition">
+                                <i class="ph-bold ph-download-simple"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-indigo-600 font-bold tracking-widest text-xs uppercase mb-2 block">04.
+                            Reporting</span>
+                        <h2 class="text-4xl font-extrabold text-slate-900 mb-6 leading-tight">Shareable Insights<br>in
+                            One Click.</h2>
+                        <p class="text-lg text-slate-500 leading-relaxed mb-8">
+                            Need to present your findings? Generate a professional PDF report containing all model
+                            metrics, charts, and data summaries instantly. Perfect for stakeholders and documentation.
+                        </p>
+                        <button onclick="goToApp()"
+                            class="text-indigo-600 font-bold hover:text-indigo-700 flex items-center gap-2 group">
+                            Generate Report <i class="ph-bold ph-file-pdf group-hover:translate-x-1 transition"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <footer class="bg-slate-900 py-2 text-center text-slate-400">
+            <div class="max-w-4xl mx-auto px-6">
+                <div class="h-px bg-slate-800 w-full mb-2"></div>
+                <p class="text-[10px] uppercase tracking-wider">&copy; 2026 AutoML. All rights reserved.</p>
+            </div>
+        </footer>
     </div>
 
-    <!-- CHART GALLERY -->
-    <div class="card" id="chartsCard" style="display:none;">
-        <h2>Evaluation Charts</h2>
+    <div id="appInterface" class="hidden-view fixed inset-0 w-full h-full bg-slate-50 flex flex-col z-[100]">
 
-        <div class="chartGrid">
-            <div>
-                <h4>Actual vs Predicted</h4>
-                <img id="chart1">
+        <div class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="goHome()"
+                    class="group flex items-center gap-2 text-slate-500 hover:text-blue-600 transition text-sm font-medium">
+                    <div
+                        class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center transition">
+                        <i class="ph-bold ph-arrow-left"></i>
+                    </div>
+                    <span>Back to Home</span>
+                </button>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-brain text-xl text-blue-600"></i>
+                    <span class="font-bold text-slate-900">AutoML - Intelligent Analytics</span>
+                </div>
             </div>
-
-            <div>
-               <h4>Residuals</h4>
-               <img id="chart2">
-            </div>
-
-            <div>
-               <h4>Error Distribution</h4>
-               <img id="chart3">
+            <div class="flex items-center gap-4">
+                <div id="globalStatus"
+                    class="text-[10px] font-bold tracking-wider px-2.5 py-1 bg-slate-100 rounded-full text-slate-500 uppercase">
+                    IDLE</div>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h3>Logs</h3>
-        <div class="log" id="logBox">Waiting…</div>
+        <div class="flex flex-1 overflow-hidden">
+
+            <div
+                class="w-full md:w-[350px] lg:w-[400px] bg-white border-r border-slate-200 flex flex-col overflow-y-auto shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                <div class="p-6">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Pipeline Setup</h2>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">1. Upload Dataset</label>
+                        <div
+                            class="group border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-8 text-center transition cursor-pointer relative bg-slate-50/50 hover:bg-blue-50/30">
+                            <input type="file" id="fileInput"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onchange="handleFileSelect()">
+                            <div
+                                class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3 text-slate-400 group-hover:text-blue-500 group-hover:scale-110 transition">
+                                <i class="ph-duotone ph-upload-simple text-2xl"></i>
+                            </div>
+                            <p id="fileName" class="text-sm text-slate-600 font-medium truncate px-2">Drag or drop CSV
+                                file</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">2. Target Variable</label>
+                        <div class="relative">
+                            <i class="ph-duotone ph-target absolute left-3 top-2.5 text-slate-400 text-lg"></i>
+                            <input type="text" id="targetInput" placeholder="Column name (e.g. price)"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm">
+                        </div>
+                    </div>
+
+                    <button onclick="runPipeline()" id="runBtn"
+                        class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-slate-800 hover:shadow-slate-900/20 active:scale-[0.98] transition flex justify-center items-center gap-2">
+                        <i class="ph-bold ph-play-circle text-lg"></i> Start Pipeline
+                    </button>
+
+                    <div class="mt-10">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Execution Status
+                        </h3>
+                        <div class="flex flex-col relative pl-2">
+                   
+                            <div class="flex gap-4 step-item group" id="step-upload">
+                                <div class="flex flex-col items-center">
+                                    <div
+                                        class="step-dot w-3 h-3 rounded-full border-2 border-slate-300 bg-white z-10 transition-colors">
+                                    </div>
+                                    <div class="step-line w-0.5 h-10 bg-slate-200 -my-1"></div>
+                                </div>
+                                <div class="pb-6 pt-[-4px]">
+                                    <p class="text-sm font-semibold text-slate-700 leading-none">Data Processing</p>
+                                    <p class="text-xs text-slate-400 mt-1">Upload, Clean, Encode</p>
+                                </div>
+                            </div>
+                           
+                            <div class="flex gap-4 step-item" id="step-eda">
+                                <div class="flex flex-col items-center">
+                                    <div
+                                        class="step-dot w-3 h-3 rounded-full border-2 border-slate-300 bg-white z-10 transition-colors">
+                                    </div>
+                                    <div class="step-line w-0.5 h-10 bg-slate-200 -my-1"></div>
+                                </div>
+                                <div class="pb-6">
+                                    <p class="text-sm font-semibold text-slate-700 leading-none">Visual Analytics</p>
+                                    <p class="text-xs text-slate-400 mt-1">Generating Charts</p>
+                                </div>
+                            </div>
+                        
+                            <div class="flex gap-4 step-item" id="step-train">
+                                <div class="flex flex-col items-center">
+                                    <div
+                                        class="step-dot w-3 h-3 rounded-full border-2 border-slate-300 bg-white z-10 transition-colors">
+                                    </div>
+                                    <div class="step-line w-0.5 h-10 bg-slate-200 -my-1"></div>
+                                </div>
+                                <div class="pb-6">
+                                    <p class="text-sm font-semibold text-slate-700 leading-none">Model Training</p>
+                                    <p class="text-xs text-slate-400 mt-1">Multi-model Optimization</p>
+                                </div>
+                            </div>
+                        
+                            <div class="flex gap-4 step-item" id="step-eval">
+                                <div class="flex flex-col items-center">
+                                    <div
+                                        class="step-dot w-3 h-3 rounded-full border-2 border-slate-300 bg-white z-10 transition-colors">
+                                    </div>
+                                </div>
+                                <div class="pb-6">
+                                    <p class="text-sm font-semibold text-slate-700 leading-none">Final Evaluation</p>
+                                    <p class="text-xs text-slate-400 mt-1">Metrics & PDF Report</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-auto bg-slate-900 text-slate-400 p-4 text-[10px] font-mono border-t border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-slate-500">LIVE LOGS</span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    </div>
+                    <div id="logBox" class="h-24 overflow-y-auto space-y-1 custom-scrollbar">
+                        <div class="opacity-50">System ready...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50/50 relative">
+
+                <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl"></div>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-8 z-10">
+                    <div class="flex gap-8">
+                        <button onclick="switchTab('eda')" id="tab-eda"
+                            class="py-4 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-blue-600 transition">Exploratory
+                            Analysis</button>
+                        <button onclick="switchTab('metrics')" id="tab-metrics"
+                            class="py-4 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-blue-600 transition">Performance
+                            Metrics</button>
+                        <button onclick="switchTab('charts')" id="tab-charts"
+                            class="py-4 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-blue-600 transition">Evaluation
+                            Plots</button>
+                    </div>
+                </div>
+
+                <div class="flex-1 p-8 overflow-y-auto relative z-0">
+
+                    <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-400">
+                        <div
+                            class="w-20 h-20 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center mb-4">
+                            <i class="ph-duotone ph-chart-polar text-4xl text-slate-300"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-slate-600 mb-1">No Data Available</h3>
+                        <p class="text-sm">Upload a dataset and run the pipeline to see results.</p>
+                    </div>
+
+                    <div id="view-eda" class="tab-content hidden animate-fade">
+                        <div class="flex justify-between items-end mb-6">
+                            <div>
+                                <h3 class="text-2xl font-bold text-slate-800">Data Insights</h3>
+                                <p class="text-slate-500 text-sm">Visualizing distributions and correlations.</p>
+                            </div>
+                        </div>
+                        <div id="edaGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        </div>
+                    </div>
+
+                    <div id="view-metrics" class="tab-content hidden animate-fade">
+                        <div class="max-w-4xl mx-auto mt-8">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-8 text-center">Model Performance Summary
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                      
+                                <div
+                                    class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition text-center relative overflow-hidden group">
+                                    <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">R² Score
+                                    </p>
+                                    <p class="text-5xl font-bold text-slate-800 tracking-tight group-hover:scale-110 transition duration-300"
+                                        id="r2">--</p>
+                                </div>
+                          
+                                <div
+                                    class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition text-center relative overflow-hidden group">
+                                    <div class="absolute top-0 left-0 w-full h-1 bg-rose-500"></div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">RMSE</p>
+                                    <p class="text-5xl font-bold text-slate-800 tracking-tight group-hover:scale-110 transition duration-300"
+                                        id="rmse">--</p>
+                                </div>
+                         
+                                <div
+                                    class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition text-center relative overflow-hidden group">
+                                    <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">MAE</p>
+                                    <p class="text-5xl font-bold text-slate-800 tracking-tight group-hover:scale-110 transition duration-300"
+                                        id="mae">--</p>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <a id="pdfLink" target="_blank"
+                                    class="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-xl shadow-slate-900/10 pointer-events-none opacity-50 cursor-not-allowed">
+                                    <i class="ph-bold ph-file-pdf text-lg"></i> Download Comprehensive Report
+                                </a>
+                                <p class="text-xs text-slate-400 mt-4">Includes feature importance, detailed charts, and
+                                    AI explanations.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-charts" class="tab-content hidden animate-fade">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-6">Regression Analysis</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-500 uppercase mb-4">Actual vs Predicted</h4>
+                                <img id="chart1" class="w-full rounded-lg bg-slate-50">
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <h4 class="text-sm font-bold text-slate-500 uppercase mb-4">Residuals</h4>
+                                <img id="chart2" class="w-full rounded-lg bg-slate-50">
+                            </div>
+                            <div
+                                class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
+                                <h4 class="text-sm font-bold text-slate-500 uppercase mb-4">Error Distribution</h4>
+                                <div class="flex justify-center bg-slate-50 rounded-lg p-4">
+                                    <img id="chart3" class="max-h-[400px] object-contain">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+ 
+        function goToApp() {
+            const landing = document.getElementById('landingPage');
+            const app = document.getElementById('appInterface');
+
+            landing.classList.add('hidden-view');
+            app.classList.remove('hidden-view');
+            app.classList.add('fade-in-up');
+        }
+
+        function goHome() {
+            const landing = document.getElementById('landingPage');
+            const app = document.getElementById('appInterface');
+
+            app.classList.add('hidden-view');
+            app.classList.remove('fade-in-up'); 
+
+            landing.classList.remove('hidden-view');
+            landing.classList.add('fade-in-up'); 
+        }
+
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function handleFileSelect() {
+            const file = document.getElementById('fileInput').files[0];
+            if (file) {
+                document.getElementById('fileName').innerText = file.name;
+                document.getElementById('fileName').classList.add('text-slate-900', 'font-bold');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('text-blue-600', 'border-blue-600');
+                el.classList.add('text-slate-500', 'border-transparent');
+            });
+
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            document.getElementById('emptyState').style.display = 'none'; 
+
+            const activeBtn = document.getElementById('tab-' + tabId);
+            activeBtn.classList.remove('text-slate-500', 'border-transparent');
+            activeBtn.classList.add('text-blue-600', 'border-blue-600');
+        }
+
         let run_id = null;
         const API = "http://localhost:5000";
 
-        function log(msg) {
-            document.getElementById("logBox").textContent += "\n" + msg;
+        function log(msg, type = 'info') {
+            const box = document.getElementById("logBox");
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            const color = type === 'error' ? 'text-red-400' : 'text-green-400';
+            box.innerHTML += `<div class="mb-1 border-l-2 ${type === 'error' ? 'border-red-500' : 'border-green-500'} pl-2"><span class="opacity-40 mr-2">${time}</span><span class="${color}">${msg}</span></div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function setStep(stepId, status) {
+            const el = document.getElementById(stepId);
+            if (status === 'active') el.classList.add('step-active');
+            if (status === 'completed') {
+                el.classList.remove('step-active');
+                el.classList.add('step-completed');
+            }
+        }
+
+        function normalizePath(path) {
+            if (!path) return "";
+            return path.startsWith("/") ? path : "/" + path;
         }
 
         async function runPipeline() {
-
             const file = document.getElementById("fileInput").files[0];
             const target = document.getElementById("targetInput").value;
+            const btn = document.getElementById("runBtn");
 
-            if (!file) return alert("Select a CSV file.");
-            if (!target) return alert("Enter a target column.");
+            if (!file) return alert("Please upload a CSV file first.");
+            if (!target) return alert("Please enter the target column name.");
 
-            // ---------- Upload ----------
-            const form = new FormData();
-            form.append("file", file);
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader mr-2 border-white/30 border-t-white"></div> Processing...`;
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('logBox').innerHTML = '';
 
-            let res = await fetch(`${API}/upload`, { method: "POST", body: form });
-            let data = await res.json();
-            run_id = data.run_id;
+            try {
+         
+                log("Starting Upload...");
+                setStep('step-upload', 'active');
 
-            log("Run ID: " + run_id);
+                const form = new FormData();
+                form.append("file", file);
 
-            // ---------- Preprocess ----------
-            await fetch(`${API}/preprocess`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ run_id, target })
-            });
+                let res = await fetch(`${API}/upload`, { method: "POST", body: form });
+                if (!res.ok) throw new Error("Upload failed");
+                let data = await res.json();
+                run_id = data.run_id;
+                log(`Upload Success. Run ID: ${run_id.substring(0, 8)}...`);
 
-            // ---------- EDA ----------
-            let edaRes = await fetch(`${API}/eda`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ run_id })
-            });
+                log("Preprocessing data...");
+                res = await fetch(`${API}/preprocess`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ run_id, target })
+                });
+                if (!res.ok) throw new Error("Preprocessing failed. Check target column.");
+                log("Preprocessing Complete.");
+                setStep('step-upload', 'completed');
 
-            let edaData = await edaRes.json();
-            log("EDA complete.");
-            showEDA(edaData);
+                setStep('step-eda', 'active');
+                log("Generating EDA Visualizations...");
+                let edaRes = await fetch(`${API}/eda`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ run_id })
+                });
+                let edaData = await edaRes.json();
+                renderEDA(edaData);
+                log("EDA Generation Complete.");
+                setStep('step-eda', 'completed');
 
-            // ---------- Train ----------
-            await fetch(`${API}/train`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ run_id, target })
-            });
+                setStep('step-train', 'active');
+                log("Initializing Model Training...");
+                await fetch(`${API}/train`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ run_id, target })
+                });
 
-            log("Training started…");
+                let done = false;
+                while (!done) {
+                    const statusRes = await fetch(`${API}/status/${run_id}`);
+                    const statusData = await statusRes.json();
 
-            // Poll status until finished
-            let done = false;
-            while (!done) {
-                const res = await fetch(`${API}/status/${run_id}`);
-                const status = await res.json();
+                    let statusText = statusData.status || statusData.Status || statusData.stage || "processing";
+                    if (typeof statusText === 'string' && statusText.includes('{')) {
+                        try {
+                            const parsed = JSON.parse(statusText);
+                            statusText = parsed.Status || parsed.status || "PROCESSING";
+                        } catch (e) { }
+                    }
 
-                document.getElementById("statusBox").textContent =
-                    JSON.stringify(status, null, 2);
+                    document.getElementById("globalStatus").innerText = statusText.toString().toUpperCase();
 
-                const value = status.status || status.stage || status;
+                    const statusLower = statusText.toString().toLowerCase();
 
-                if (typeof value === "string" && value.includes("training_complete")) {
-                    done = true;
-                    break;
+                    if (statusLower.includes("failed")) throw new Error(statusText);
+
+                    if (statusLower.includes("training_complete") || statusLower.includes("training complete")) {
+                        done = true;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 2000));
                 }
 
-                await new Promise(r => setTimeout(r, 2000));
+                log("Training Models Complete.");
+                setStep('step-train', 'completed');
+
+                setStep('step-eval', 'active');
+                log("Evaluating Best Model...");
+                res = await fetch(`${API}/evaluate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ run_id, target })
+                });
+                const evalData = await res.json();
+                renderResults(evalData);
+                log("Evaluation Complete.");
+
+                log("Generating PDF Report...");
+                res = await fetch(`${API}/report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ run_id })
+                });
+                const report = await res.json();
+                const pdfBtn = document.getElementById("pdfLink");
+                pdfBtn.href = normalizePath(report.report_path);
+                pdfBtn.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                log("Report Ready.");
+                setStep('step-eval', 'completed');
+
+                btn.innerHTML = `<i class="ph-bold ph-check text-lg"></i> Completed`;
+                btn.classList.replace('bg-slate-900', 'bg-emerald-600');
+                switchTab('metrics');
+
+            } catch (error) {
+                console.error(error);
+                log(error.message, 'error');
+                btn.innerHTML = `<i class="ph-bold ph-warning text-lg"></i> Failed`;
+                btn.classList.replace('bg-slate-900', 'bg-red-600');
+                btn.disabled = false;
             }
-
-            log("Training complete.");
-
-            // ---------- Evaluate ----------
-            res = await fetch(`${API}/evaluate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ run_id, target })
-            });
-
-            const evalData = await res.json();
-            log("Evaluation completed.");
-
-            showResults(evalData);
-
-            // ---------- Report ----------
-            res = await fetch(`${API}/report`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ run_id })
-            });
-
-            const report = await res.json();
-            document.getElementById("pdfLink").href =
-                `/${report.report_path}`;
         }
 
-        function normalize(path) {
-            if (path.startsWith("/")) return path;
-            return "/" + path;
-        }
-
-        function showResults(data) {
-
-            document.getElementById("resultsCard").style.display = "block";
-            document.getElementById("chartsCard").style.display = "block";
-
-            document.getElementById("r2").innerText = data.results.r2_score.toFixed(3);
-            document.getElementById("rmse").innerText = data.results.rmse.toFixed(2);
-            document.getElementById("mae").innerText = data.results.mae.toFixed(2);
-
-            document.getElementById("chart1").src =
-                normalize(data.results.plots.actual_vs_predicted);
-
-            document.getElementById("chart2").src =
-                normalize(data.results.plots.residuals);
-
-            document.getElementById("chart3").src =
-                normalize(data.results.plots.error_distribution);
-        }
-
-        function showEDA(data) {
-
+        function renderEDA(data) {
             if (!data.eda_overview) return;
-
             const plots = data.eda_overview;
-
-            document.getElementById("edaCard").style.display = "block";
-
             const grid = document.getElementById("edaGrid");
             grid.innerHTML = "";
 
-            // Render histograms
+            const createImgCard = (title, src) => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition group">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="ph-fill ph-image text-blue-500"></i> ${title}
+                    </h4>
+                    <div class="overflow-hidden rounded-lg bg-slate-50 border border-slate-100">
+                        <img src="${normalizePath(src)}" class="w-full object-contain group-hover:scale-105 transition duration-500" loading="lazy">
+                    </div>
+                </div>
+            `;
+
+            if (plots.correlation_heatmap) {
+                grid.innerHTML += createImgCard("Correlation Heatmap", plots.correlation_heatmap);
+            }
+
             if (plots.histograms && plots.histograms.length > 0) {
-                plots.histograms.forEach(p => {
-                    grid.innerHTML += `
-                        <div>
-                            <h4>Histogram</h4>
-                            <img src="/${p}">
-                        </div>
-                    `;
+                plots.histograms.forEach((p, idx) => {
+                    grid.innerHTML += createImgCard(`Distribution Plot ${idx + 1}`, p);
                 });
             }
-
-            // Render correlation heatmap
-            if (plots.correlation_heatmap) {
-                grid.innerHTML += `
-                    <div>
-                        <h4>Correlation Heatmap</h4>
-                        <img src="/${plots.correlation_heatmap}">
-                    </div>
-                `;
-            }
         }
-    </script>
 
+        function renderResults(data) {
+            document.getElementById("r2").innerText = data.results.r2_score ? data.results.r2_score.toFixed(3) : "N/A";
+            document.getElementById("rmse").innerText = data.results.rmse ? data.results.rmse.toFixed(2) : "N/A";
+            document.getElementById("mae").innerText = data.results.mae ? data.results.mae.toFixed(2) : "N/A";
+
+            document.getElementById("chart1").src = normalizePath(data.results.plots.actual_vs_predicted);
+            document.getElementById("chart2").src = normalizePath(data.results.plots.residuals);
+            document.getElementById("chart3").src = normalizePath(data.results.plots.error_distribution);
+        }
+
+    </script>
 </body>
 
 </html>

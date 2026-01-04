@@ -1,4 +1,5 @@
 import sys, os
+import json
 from pathlib import Path
 sys.path.append(os.path.dirname(__file__))
 import uuid
@@ -158,7 +159,6 @@ def eda_route():
             summary_path=summary_path
         )
 
-        # —— normalize plot paths  ——
         if "histograms" in eda_summary:
             eda_summary["histograms"] = [
                 f"runs/{run_id}/eda_plots/{os.path.basename(p)}"
@@ -308,14 +308,13 @@ def status_route(run_id):
     if not os.path.exists(status_file):
         return jsonify({"error": "Invalid run_id"}), 404
 
-    with open(status_file, "r") as f:
-        status = f.read()
-
     try:
-        return jsonify(json.loads(status))
-    except:
-        return jsonify({"status": status})  
-
+        with open(status_file, "r") as f:
+            status_content = f.read()
+        data = json.loads(status_content)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"status": "processing", "details": str(e)}) 
 
 # Main
 if __name__ == "__main__":
