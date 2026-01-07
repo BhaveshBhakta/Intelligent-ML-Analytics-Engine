@@ -50,7 +50,7 @@ This system ingests a CSV dataset, performs automated preprocessing, exploratory
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/YourRepo/Intelligent-ML-Analytics-Engine
+git clone https://github.com/BhaveshBhakta/Intelligent-ML-Analytics-Engine.git
 cd Intelligent-ML-Analytics-Engine
 pip install -r requirements.txt
 ```
