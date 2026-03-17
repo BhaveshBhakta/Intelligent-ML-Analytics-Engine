@@ -9,7 +9,9 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.svm import SVR, SVC
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from services.optuna_engine import tune_random_forest, tune_xgboost
 from xgboost import XGBRegressor, XGBClassifier
+from services.meta_learning_engine import recommend_models
 
 def normalize_columns(df):
     """
@@ -48,6 +50,19 @@ def load_csv_safely(path):
             return pd.read_csv(path, encoding="utf-8", errors="ignore")
 
 def train_models(processed_path, models_dir, target):
+    
+    meta_path = os.path.join(os.path.dirname(processed_path), "meta_features.json")
+    meta_features = None
+
+    if os.path.exists(meta_path):
+        with open(meta_path, "r") as f:
+            meta_features = json.load(f)
+            
+    recommended_models = None
+
+    if meta_features:
+        recommended_models = recommend_models(meta_features)
+        print("Recommended models from meta-learning:", recommended_models)
 
     df = load_csv_safely(processed_path)
     df = normalize_columns(df)
@@ -86,6 +101,18 @@ def train_models(processed_path, models_dir, target):
             "KNNRegressor": KNeighborsRegressor(),
             "XGBRegressor": XGBRegressor(objective="reg:squarederror")
         }
+        
+        if recommended_models:
+
+            filtered_models = {
+                k: v for k, v in models.items()
+                if k in recommended_models
+            }
+
+            # If filtering removed everything, fallback to all models
+            if len(filtered_models) > 0:
+                models = filtered_models
+            
         scoring = "r2"
 
     else:
@@ -97,16 +124,33 @@ def train_models(processed_path, models_dir, target):
             "KNNClassifier": KNeighborsClassifier(),
             "XGBClassifier": XGBClassifier(eval_metric="logloss")
         }
+        
+        if recommended_models:
+            models = {k: v for k, v in models.items() if k in recommended_models}
+            
         scoring = "accuracy"
 
-    best_score = -999
+    best_score = -float("inf")
     best_model = None
     best_model_name = None
     results = {}
 
     for name, model in models.items():
+        print(f"Training model: {name}")
         try:
-            model.fit(X_train, y_train)
+            if name == "RandomForestClassifier":
+
+                tuned_model, params = tune_random_forest(X_train, y_train)
+                model = tuned_model
+
+            elif name == "XGBClassifier":
+
+                tuned_model, params = tune_xgboost(X_train, y_train)
+                model = tuned_model
+
+            else:
+
+                model.fit(X_train, y_train)
 
             y_pred = model.predict(X_test)
 
@@ -134,10 +178,33 @@ def train_models(processed_path, models_dir, target):
         except Exception as e:
             results[name] = {"error": str(e)}
 
+    # Save best model
     best_path = os.path.join(models_dir, "best_model.pkl")
+
+    if best_model is None:
+        raise Exception("No models were successfully trained.")
+
     joblib.dump(best_model, best_path)
 
+    leaderboard = []
+
+    for name, info in results.items():
+        
+        if "cv_score" in info:
+            leaderboard.append({
+                "model": name,
+                "cv_score": info["cv_score"],
+                "test_score": info["test_score"]
+            })
+
+    leaderboard = sorted(
+        leaderboard,
+        key=lambda x: x["cv_score"],
+        reverse=True
+    )
+
     summary = {
+        "leaderboard": leaderboard,
         "problem_type": problem_type,
         "target_column_original_arg": target,
         "target_column_matched": target_col,

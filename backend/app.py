@@ -12,6 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from services.models_engine import train_models
 from services.evaluation_engine import evaluate_model
 from services.report_engine import generate_report
+from services.experiment_tracker import log_experiment
+from services.meta_feature_engine import extract_meta_features
+from services.pipeline_engine import analyze_dataset_complexity, recommend_pipeline
 
 
 # Flask App Initialization
@@ -25,8 +28,9 @@ executor = ThreadPoolExecutor(max_workers=2)
 
 from flask import send_from_directory
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 RUNS_DIR = BASE_DIR / "runs"
+print("Serving runs directory from:", RUNS_DIR)
 
 @app.route("/runs/<run_id>/evaluation/<path:filename>")
 def serve_eval_files(run_id, filename):
@@ -152,6 +156,22 @@ def eda_route():
         update_status(run_id, "eda_started")
 
         df = load_csv_safely(processed_path)
+        
+        meta_path = os.path.join(run_path, "meta_features.json")
+
+        meta_features = extract_meta_features(
+            df=df,
+            save_path=meta_path
+        )
+        
+        complexity = analyze_dataset_complexity(meta_features)
+
+        pipeline_recommendation = recommend_pipeline(complexity)
+        
+        pipeline_path = os.path.join(run_path, "pipeline_recommendation.json")
+
+        with open(pipeline_path, "w") as f:
+            json.dump(pipeline_recommendation, f, indent=4)
 
         eda_summary = generate_eda(
             df=df,
@@ -161,13 +181,13 @@ def eda_route():
 
         if "histograms" in eda_summary:
             eda_summary["histograms"] = [
-                f"runs/{run_id}/eda_plots/{os.path.basename(p)}"
+                f"/runs/{run_id}/eda_plots/{os.path.basename(p)}"
                 for p in eda_summary["histograms"]
             ]
 
         if eda_summary.get("correlation_heatmap"):
             eda_summary["correlation_heatmap"] = \
-                f"runs/{run_id}/eda_plots/{os.path.basename(eda_summary['correlation_heatmap'])}"
+                f"/runs/{run_id}/eda_plots/{os.path.basename(eda_summary['correlation_heatmap'])}"
 
         update_status(run_id, "eda_complete")
 
@@ -256,6 +276,27 @@ def evaluate_route():
             target=target,
             eval_dir=eval_dir
         )
+        
+        meta_path = os.path.join(run_path, "meta_features.json")
+        models_summary_path = os.path.join(models_dir, "models_summary.json")
+
+        meta_features = None
+        model_summary = None
+
+        if os.path.exists(meta_path):
+            with open(meta_path) as f:
+                meta_features = json.load(f)
+
+        if os.path.exists(models_summary_path):
+            with open(models_summary_path) as f:
+                model_summary = json.load(f)
+
+        log_experiment(
+            run_id,
+            meta_features,
+            model_summary,
+            results
+        )
 
         update_status(run_id, "evaluation_complete")
 
@@ -263,10 +304,12 @@ def evaluate_route():
             "message": "Evaluation complete",
             "run_id": run_id,
             "results": results,
+            "model_summary": model_summary,
             "evaluation_folder": eval_dir
         }), 200
 
     except Exception as e:
+        print("Evaluation Error:", e)
         update_status(run_id, f"evaluation_failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
     

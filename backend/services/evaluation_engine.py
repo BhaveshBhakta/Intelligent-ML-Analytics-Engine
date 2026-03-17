@@ -8,6 +8,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
+from services.shap_engine import generate_shap_plots
 from sklearn.metrics import (
     r2_score,
     mean_absolute_error,
@@ -56,8 +57,24 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
     model = joblib.load(model_path)
 
     y_pred = model.predict(X_test)
+    
+    shap_dir = os.path.join(eval_dir, "shap")
+
+    shap_plots = None
+
+    try:
+        shap_plots = generate_shap_plots(
+            model,
+            X_test,
+            shap_dir
+        )
+    except Exception as e:
+        print("SHAP skipped:", str(e))
 
     results = {"problem_type": problem_type}
+    
+    if shap_plots:
+        results["shap_explanations"] = shap_plots
 
     # REGRESSION METRICS
     if problem_type == "regression":
@@ -79,7 +96,8 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
         plt.xlabel("Actual")
         plt.ylabel("Predicted")
         plt.title("Actual vs Predicted")
-        path1 = os.path.join(eval_dir, "actual_vs_predicted.png")
+        filename1 = "actual_vs_predicted.png"
+        path1 = os.path.join(eval_dir, filename1)
         plt.savefig(path1, bbox_inches="tight")
         plt.close()
 
@@ -104,9 +122,9 @@ def evaluate_model(processed_path, models_dir, target, eval_dir):
         plt.close()
 
         results["plots"] = {
-            "actual_vs_predicted": path1,
-            "residuals": path2,
-            "error_distribution": path3
+            "actual_vs_predicted": f"runs/{os.path.basename(os.path.dirname(eval_dir))}/evaluation/{filename1}",
+            "residuals": f"runs/{os.path.basename(os.path.dirname(eval_dir))}/evaluation/residuals.png",
+            "error_distribution": f"runs/{os.path.basename(os.path.dirname(eval_dir))}/evaluation/error_distribution.png"
         }
 
     # CLASSIFICATION METRICS

@@ -768,6 +768,26 @@
                                 </div>
                             </div>
 
+                            <div class="mt-12">
+                                <h4 class="text-xl font-bold text-slate-800 mb-4 text-center">🏆 Model Leaderboard</h4>
+
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="bg-slate-100 text-slate-600 uppercase text-xs">
+                                            <tr>
+                                                <th class="px-6 py-3">Rank</th>
+                                                <th class="px-6 py-3">Model</th>
+                                                <th class="px-6 py-3">CV Score</th>
+                                                <th class="px-6 py-3">Test Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="leaderboardTable" class="text-slate-700">
+                                            <!-- Filled dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <div class="text-center">
                                 <a id="pdfLink" target="_blank"
                                     class="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-xl shadow-slate-900/10 pointer-events-none opacity-50 cursor-not-allowed">
@@ -1039,7 +1059,27 @@
             document.getElementById("chart1").src = normalizePath(data.results.plots.actual_vs_predicted);
             document.getElementById("chart2").src = normalizePath(data.results.plots.residuals);
             document.getElementById("chart3").src = normalizePath(data.results.plots.error_distribution);
-        }
+
+            const table = document.getElementById("leaderboardTable");
+            table.innerHTML = "";
+
+            if (data.model_summary && data.model_summary.leaderboard) {
+
+                data.model_summary.leaderboard.forEach((item, index) => {
+
+                    const row = `
+                        <tr class="border-t">
+                            <td class="px-6 py-3 font-bold">${index + 1}</td>
+                            <td class="px-6 py-3">${item.model}</td>
+                            <td class="px-6 py-3 text-blue-600 font-semibold">${item.cv_score.toFixed(3)}</td>
+                            <td class="px-6 py-3">${item.test_score.toFixed(3)}</td>
+                        </tr>
+                    `;
+
+                    table.innerHTML += row;
+                });
+            }
+}
 
     </script>
 </body>
