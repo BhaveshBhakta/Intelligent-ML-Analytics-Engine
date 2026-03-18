@@ -1,107 +1,78 @@
 # AutoML - An Intelligent ML Analytics Engine
 
-This system ingests a CSV dataset, performs automated preprocessing, exploratory data analysis, model training, evaluation, and generates a polished analytical report. It produces performance metrics and visual insights — including EDA plots and model evaluation charts — through a simple web interface. Designed for students, analysts, and data teams who want fast, structured insights without manual setup.
+**AutoML** is a high-performance analytics engine designed to automate the end-to-end machine learning lifecycle. By ingesting raw CSV data, the system orchestrates a sophisticated pipeline—from automated preprocessing and meta-learning-driven model selection to hyperparameter optimization and explainable AI (XAI). 
+
+The platform bridges the gap between raw data and actionable intelligence, delivering a polished web interface for real-time monitoring, visual insights, and comprehensive PDF reporting.
 
 ---
 
 ## Key Features
 
 ### Automated Analysis Suite
+* **Intelligent Data Preprocessing**: Automated handling of missing values, encoding of categorical variables, and date-time feature engineering. Outputs a standardized `processed.csv` ready for modeling.
+* **Deep Exploratory Data Analysis (EDA)**: Generates summary statistics, missing-value profiles, correlation heatmaps, and distribution plots. All assets are version-controlled under `runs/<run_id>/`.
+* **Meta-Learning Engine**: Extracts high-level dataset characteristics (meta-features) to recommend optimal model architectures based on historical experiment performance.
+* **AutoML Model Training**: Automatically detects problem types (Regression/Classification), trains a diverse model zoo, and persists the champion model as `best_model.pkl`.
+* **Hyperparameter Optimization**: Leverages **Optuna** for Bayesian optimization, fine-tuning models like XGBoost and Random Forest beyond default configurations.
+* **Comprehensive Evaluation**: 
+    * **Regression**: $R^2$, $RMSE$, $MAE$, $MSE$.
+    * **Classification**: Accuracy, Confusion Matrices, and Precision-Recall curves.
+* **Explainable AI (XAI)**: Integrated **SHAP** and Feature Importance analysis to provide transparency into model decision-making.
+* **Experiment Tracking**: A RAG-inspired memory system that stores meta-features and performance metrics to improve future model recommendations.
 
-* **Data Preprocessing** :  Missing-value handling, Numeric + categorical feature processing, Date column detection & conversion, Automatic dataset cleaning, Outputs a clean `processed.csv`
-
-* **Exploratory Data Analysis (EDA)**: Summary statistics (`describe`), Missing-value profiling, Histogram visualizations for numeric features, Correlation heatmap, Safe filename handling, All plots saved under `runs/<run_id>/eda_plots/`
-
-* **AutoML Model Training** : Automatically detects problem type (regression/classification), Trains multiple baseline models, Selects best model automatically, Saves model as `best_model.pkl`
-
-* **Model Evaluation & Reporting** : Regression Metrics -  R² Score, RMSE, MAE, MSE | Classification Metrics - Accuracy, Confusion Matrix | Evaluation Plots - Actual vs Predicted, Residual Plot, Error Distribution | PDF final report generation | Results stored in structured folders per run
+### 💻 User-Friendly Interface
+* **Modern Web UI**: Responsive dashboard built with Flask and vanilla HTML/JS/Tailwind.
+* **Seamless Workflow**: One-click pipeline execution with live status updates.
+* **Centralized Results**: Interactive leaderboard, downloadable PDF reports, and localized storage indexed by unique `run_id`.
 
 ---
 
-### User-Friendly Interface
+## Website Overview
 
-* Web UI built with Flask + vanilla HTML/JS
-* Upload CSV & select target column
-* Click once to run the full pipeline
-* Live status updates at each step
-* View metrics, charts & download report
-* Runs stored safely by unique `run_id`
+<img width="1849" height="1080" alt="automl" src="https://github.com/user-attachments/assets/ef4c1a21-de7d-4c4c-963f-e5620c73596b" />
+
 
 ---
 
 ## Technology Stack
 
-* **Backend** : Python, Flask (REST API), scikit-learn (ML models & metrics), pandas / numpy (data processing), seaborn / matplotlib (visualization), joblib (model persistence)
-
-* **Frontend** : HTML, CSS, JavaScript (Fetch API)
-
-* **Architecture & Infrastructure** : Thread-based async training, Structured run directories, CORS enabled frontend-backend communication, Headless plotting via `matplotlib.use("Agg")`
+| Component | Technologies |
+| :--- | :--- |
+| **Backend** | Python, Flask (REST API), Scikit-learn, XGBoost |
+| **Optimization/XAI** | Optuna, SHAP |
+| **Data & Viz** | Pandas, Numpy, Seaborn, Matplotlib (Agg backend) |
+| **Frontend** | HTML5, Tailwind CSS, JavaScript (Fetch API) |
+| **Architecture** | Thread-based Async Training, Modular ML Pipelines, CORS-enabled Communication |
 
 ---
 
-## Website Overview
-<img width="3068" height="1614" alt="AutoML Intelligent Analytics 1" src="https://github.com/user-attachments/assets/e38a5fc7-e7ff-4a2a-bf8d-d3de65a378ab" />
-<img width="3066" height="1558" alt="AutoML Intelligent Analytics 2" src="https://github.com/user-attachments/assets/fe37fca3-ed05-4ee2-9bbb-e43639e1b7d2" />
+## High-Level Architecture
+
+<img width="1536" height="1024" alt="automl arch" src="https://github.com/user-attachments/assets/951991b3-b7b1-437b-a304-9e19fccc31a5" />
 
 ---
 
 ## Quick Start
 
-Clone the repository and install dependencies:
-
+**1. Clone the repository and install dependencies:**
 ```bash
 git clone https://github.com/BhaveshBhakta/Intelligent-ML-Analytics-Engine.git
 cd Intelligent-ML-Analytics-Engine
 pip install -r requirements.txt
 ```
 
-Run the backend:
-
+**2. Launch the backend:**
 ```bash
 python -m backend.app
 ```
 
-Open the UI:
-
-```
-http://localhost:5000
-```
-
-All outputs are saved automatically under:
-
-```
-runs/<RUN_ID>/
-```
-
----
-
-## High-Level Architecture
-
-```
-User (Browser, CSV Upload)
-        ↓
-     Flask API
-        ↓
- ┌────────────── Pipeline ───────────────┐
- │ Upload & Run Creation                 │
- │ Data Preprocessing                    │
- │ Exploratory Data Analysis (EDA)       │
- │ AutoML Model Training                 │
- │ Model Evaluation + Charts             │
- │ PDF Report Generation                 │
- └───────────────────────────────────────┘
-        ↓
-  UI Dashboard + Exportable Results
-```
+**3. Access the UI:**
+Navigate to `http://localhost:5000` in your browser. All outputs are automatically persisted in:
+`runs/<RUN_ID>/`
 
 ---
 
 ## Roadmap & Future Enhancements
-
-* Automated hyperparameter tuning
-* Explainability using SHAP / LIME
-* Outlier detection & handling
-* Time-series forecasting support
-* Model comparison dashboard
-* Authentication & multi-user runs
-* Cloud deployment template
+* [ ] **Advanced Meta-Learning**: Implementing transformer-based recommendation models.
+* [ ] **Deep Learning**: Integration of PyTorch/TensorFlow for neural architecture search (NAS).
+* [ ] **Enterprise Readiness**: Multi-user authentication and Dockerized cloud deployment (AWS/GCP).
